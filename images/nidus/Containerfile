@@ -15,6 +15,7 @@ FROM ${BASE_IMAGE}
 # the toolbox containers, not on the host.
 #
 RUN dnf install -y \
+    podman \
     toolbox \
     distrobox \
     tuned \

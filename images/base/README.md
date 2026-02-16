@@ -12,7 +12,6 @@ General-purpose Fedora bootc base image. All derivative images build on top of t
 - `htop` — process monitor
 - `emacs` — text editor
 - `jq` — JSON processor
-- `podman` — container runtime
 
 ## Build
 

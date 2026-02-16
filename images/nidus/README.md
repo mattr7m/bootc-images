@@ -7,8 +7,9 @@ kyuz0 AI toolboxes. Derives from the base image.
 
 ```
 quay.io/fedora/fedora-bootc:43
-  └── base       — git, gh, tmux, curl, wget, htop, emacs, jq, podman
-        └── nidus  — toolbox, distrobox, tuned, pciutils, usbutils, lm_sensors, linux-firmware
+  └── base       — git, gh, tmux, curl, wget, htop, emacs, jq
+        ├── nidus  — podman, toolbox, distrobox, tuned, pciutils, usbutils, lm_sensors, linux-firmware
+        └── dev    — podman, python3, php, gcc, claude-code
 ```
 
 ## Hardware Target
@@ -20,6 +21,7 @@ quay.io/fedora/fedora-bootc:43
 
 | Package | Purpose |
 |---|---|
+| `podman` | Container runtime |
 | `toolbox`, `distrobox` | Container tooling for AI toolboxes |
 | `tuned` | Performance tuning (accelerator-performance profile) |
 | `pciutils`, `usbutils` | Hardware inspection |

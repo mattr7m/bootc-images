@@ -1,0 +1,16 @@
+ARG BASE_IMAGE=localhost/bootc-base:latest
+FROM ${BASE_IMAGE}
+
+RUN dnf install -y \
+    podman \
+    python3 \
+    php \
+    gcc \
+    && dnf clean all
+
+# Claude Code — native binary via official installer
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+COPY config/ /
+
+RUN bootc container lint
