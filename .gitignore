@@ -1,4 +1,5 @@
 # Build outputs
+output/
 *.iso
 *.qcow2
 *.raw
