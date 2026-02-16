@@ -53,10 +53,8 @@ make build-dev
 # Push to a registry
 make push-all REGISTRY=ghcr.io/youruser
 
-# Build Anaconda ISOs
-make iso-base
-make iso-nidus
-make iso-dev
+# Build Anaconda ISOs (images must be staged to root's podman first)
+make stage-iso
 make iso-all
 ```
 
