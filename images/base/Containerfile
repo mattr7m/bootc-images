@@ -1,0 +1,19 @@
+FROM quay.io/fedora/fedora-bootc:43
+
+# Copy system configuration
+COPY config/ /
+
+# Install core packages
+RUN dnf install -y \
+    git \
+    gh \
+    tmux \
+    curl \
+    wget \
+    htop \
+    emacs \
+    jq \
+    podman \
+    && dnf clean all
+
+RUN bootc container lint

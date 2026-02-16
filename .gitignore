@@ -1,0 +1,16 @@
+# Build outputs
+*.iso
+*.qcow2
+*.raw
+*.vmdk
+
+# Editor files
+*~
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

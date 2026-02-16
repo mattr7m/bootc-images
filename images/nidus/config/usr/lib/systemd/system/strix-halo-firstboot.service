@@ -1,0 +1,12 @@
+[Unit]
+Description=Strix Halo First Boot Configuration
+After=tuned.service
+Requires=tuned.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/strix-halo-firstboot.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
