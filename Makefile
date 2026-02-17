@@ -9,7 +9,8 @@ DEV_IMAGE   = $(REGISTRY)/bootc-dev:$(DEV_TAG)
 
 .PHONY: build-base build-nidus build-dev build-all \
         push-base push-nidus push-dev push-all \
-        stage-iso iso-base iso-nidus iso-dev iso-all \
+        stage-base stage-nidus stage-dev stage-all \
+        iso-base iso-nidus iso-dev iso-all \
         lint clean help
 
 help: ## Show this help
@@ -52,19 +53,25 @@ push-dev: ## Push the dev image to REGISTRY
 
 push-all: push-base push-nidus push-dev ## Push all images to REGISTRY
 
-stage-iso: ## Copy images to root's podman storage for ISO builds
+stage-base: ## Copy base image to root's podman storage for ISO builds
 	podman save $(BASE_IMAGE) | sudo podman load
+
+stage-nidus: ## Copy nidus image to root's podman storage for ISO builds
 	podman save $(NIDUS_IMAGE) | sudo podman load
+
+stage-dev: ## Copy dev image to root's podman storage for ISO builds
 	podman save $(DEV_IMAGE) | sudo podman load
 
-iso-base: ## Build Anaconda ISO for base
+stage-all: stage-base stage-nidus stage-dev ## Copy all images to root's podman storage
+
+iso-base: stage-base ## Build Anaconda ISO for base
 	sudo scripts/build-iso.sh base
 
-iso-nidus: ## Build Anaconda ISO for nidus
+iso-nidus: stage-nidus ## Build Anaconda ISO for nidus
 	sudo scripts/build-iso.sh nidus
 
-iso-dev: ## Build Anaconda ISO for dev
+iso-dev: stage-dev ## Build Anaconda ISO for dev
 	sudo scripts/build-iso.sh dev
 
-iso-all: ## Build Anaconda ISOs for all images
+iso-all: stage-all ## Build Anaconda ISOs for all images
 	sudo scripts/build-iso.sh all
