@@ -25,23 +25,26 @@ RUN dnf install -y \
     linux-firmware \
     && dnf clean all
 
-# ── 2. Create the noctua user ──────────────────────────────────────────────
-#
-# The user must exist in the image so that bootc-image-builder / Anaconda
-# can apply SSH keys and passwords from config.toml without a race condition.
-#
-RUN useradd -m -G wheel,video,render noctua
-
-# ── 3. Copy configuration overlay ────────────────────────────────────────────
+# ── 2. Copy configuration overlay ────────────────────────────────────────────
 #
 # Filesystem-mirror layout under config/ maps directly to /:
 #   config/usr/lib/bootc/kargs.d/01-strix-halo.toml   → kernel boot parameters
 #   config/usr/lib/udev/rules.d/99-amd-kfd.rules      → GPU device access
+#   config/usr/lib/sysusers.d/noctua.conf              → noctua user/group defs
 #   config/usr/lib/systemd/system/strix-halo-firstboot.service
 #   config/usr/local/bin/strix-halo-firstboot.sh       → first-boot tuned setup
 #   config/usr/local/bin/strix-halo-setup-toolboxes.sh → toolbox provisioning
 #
 COPY config/ /
+
+# ── 3. Create the noctua user ──────────────────────────────────────────────
+#
+# Materialize sysusers.d entries (including noctua.conf from the overlay)
+# into /etc/passwd and /etc/group so the user exists in the image.
+# This lets bootc-image-builder / Anaconda apply SSH keys and passwords
+# from config.toml without hitting "user does not exist" errors.
+#
+RUN systemd-sysusers && systemd-tmpfiles --create /usr/lib/tmpfiles.d/noctua.conf
 
 # ── 4. Enable services ───────────────────────────────────────────────────────
 RUN systemctl enable tuned strix-halo-firstboot.service
