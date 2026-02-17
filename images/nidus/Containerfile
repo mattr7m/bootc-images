@@ -25,7 +25,14 @@ RUN dnf install -y \
     linux-firmware \
     && dnf clean all
 
-# ── 2. Copy configuration overlay ────────────────────────────────────────────
+# ── 2. Create the noctua user ──────────────────────────────────────────────
+#
+# The user must exist in the image so that bootc-image-builder / Anaconda
+# can apply SSH keys and passwords from config.toml without a race condition.
+#
+RUN useradd -m -G wheel,video,render noctua
+
+# ── 3. Copy configuration overlay ────────────────────────────────────────────
 #
 # Filesystem-mirror layout under config/ maps directly to /:
 #   config/usr/lib/bootc/kargs.d/01-strix-halo.toml   → kernel boot parameters
@@ -36,10 +43,10 @@ RUN dnf install -y \
 #
 COPY config/ /
 
-# ── 3. Enable services ───────────────────────────────────────────────────────
+# ── 4. Enable services ───────────────────────────────────────────────────────
 RUN systemctl enable tuned strix-halo-firstboot.service
 
-# ── 4. Kernel boot parameter notes ───────────────────────────────────────────
+# ── 5. Kernel boot parameter notes ───────────────────────────────────────────
 #
 # Parameters are declared in /usr/lib/bootc/kargs.d/01-strix-halo.toml and
 # applied by bootc at install time and on subsequent upgrades.
