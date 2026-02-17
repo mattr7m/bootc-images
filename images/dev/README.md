@@ -34,15 +34,17 @@ podman build --build-arg BASE_IMAGE=localhost/bootc-base:latest \
     -t bootc-dev:latest images/dev/
 ```
 
-## Deployment with bootc-image-builder
+## User: user
 
-The `config.toml` file (at `images/dev/config.toml`, NOT inside `config/`) is an input for
-`bootc-image-builder`. Edit it with your username, password/SSH key, and groups:
+The `user` account (UID 1000) is inherited from the base image. Login credentials (password, SSH key) are applied at install time through `config.toml`:
 
 ```bash
-# Build an Anaconda ISO
+cp images/dev/config.toml.example images/dev/config.toml
+# Edit to set your password hash and SSH public key
 make iso-dev
 ```
+
+Credentials use a kickstart `%post` script because Anaconda silently skips `[[customizations.user]]` for users that already exist in the image. See `config.toml.example` for the format.
 
 ## Verification
 

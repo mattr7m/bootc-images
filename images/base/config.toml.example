@@ -1,7 +1,21 @@
-[[customizations.user]]
-name = "your-username"
-# Use a hashed password (generate with: python3 -c "import crypt; print(crypt.crypt('yourpassword'))")
-password = "$6$rounds=..."
-groups = ["wheel", "video", "render"]
-# Or use SSH key instead:
-# key = "ssh-ed25519 AAAA..."
+# Base ISO installer customizations
+#
+# Anaconda silently skips password/key setup for users that already exist
+# in the image (user is created at build time via sysusers.d). Use a
+# kickstart %post script to apply credentials at install time instead.
+#
+# Generate a password hash with:
+#   python3 -c "import crypt; print(crypt.crypt('yourpassword'))"
+
+[customizations.installer.kickstart]
+contents = """
+%post
+echo 'user:$6$rounds=...' | chpasswd -e
+mkdir -p /var/home/user/.ssh
+echo 'ssh-ed25519 AAAA...' >> /var/home/user/.ssh/authorized_keys
+chmod 700 /var/home/user/.ssh
+chmod 600 /var/home/user/.ssh/authorized_keys
+chown -R user:user /var/home/user/.ssh
+restorecon -R /var/home/user/.ssh
+%end
+"""

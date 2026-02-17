@@ -13,13 +13,13 @@ quay.io/fedora/fedora-bootc:43
 
 ## User Configuration (optional)
 
-Each image supports an optional `config.toml` for bootc-image-builder user customization (login credentials, SSH keys). These files are **gitignored** because they may contain hashed passwords.
+Each image creates a default user at build time via `sysusers.d` (base/dev: `user`, nidus: `noctua`). Login credentials (password, SSH key) are applied at install time through `config.toml`, which is **gitignored** because it contains hashed passwords.
 
 To create one, copy the example and edit it:
 
 ```bash
-cp images/base/config.toml.example images/base/config.toml
-# Edit to set your username, password, SSH key, and groups
+cp images/nidus/config.toml.example images/nidus/config.toml
+# Edit to set your password hash and SSH public key
 ```
 
 Generate a hashed password with:
@@ -28,15 +28,21 @@ Generate a hashed password with:
 python3 -c "import crypt; print(crypt.crypt('yourpassword'))"
 ```
 
-A `config.toml` is only used during ISO builds (`make iso-*`). Without one, the ISO will have no login credentials configured. The file format:
+A `config.toml` is only used during ISO builds (`make iso-*`). Without one, the ISO will have no login credentials configured. Credentials are injected via a kickstart `%post` script because Anaconda silently skips `[[customizations.user]]` for users that already exist in the image:
 
 ```toml
-[[customizations.user]]
-name = "your-username"
-password = "$6$rounds=..."
-groups = ["wheel", "video", "render"]
-# Or use an SSH key (console/TTY login requires a password):
-# key = "ssh-ed25519 AAAA..."
+[customizations.installer.kickstart]
+contents = """
+%post
+echo 'noctua:$6$rounds=...' | chpasswd -e
+mkdir -p /var/home/noctua/.ssh
+echo 'ssh-ed25519 AAAA...' >> /var/home/noctua/.ssh/authorized_keys
+chmod 700 /var/home/noctua/.ssh
+chmod 600 /var/home/noctua/.ssh/authorized_keys
+chown -R noctua:noctua /var/home/noctua/.ssh
+restorecon -R /var/home/noctua/.ssh
+%end
+"""
 ```
 
 ## Quick Start

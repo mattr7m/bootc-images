@@ -1,7 +1,21 @@
-[[customizations.user]]
-name = "your-username"
-# Use a hashed password (generate with: python3 -c "import crypt; print(crypt.crypt('yourpassword'))")
-password = "$6$rounds=..."
-groups = ["wheel", "video", "render"]
-# Or use SSH key instead:
-# key = "ssh-ed25519 AAAA..."
+# Nidus ISO installer customizations
+#
+# Anaconda silently skips password/key setup for users that already exist
+# in the image (noctua is created at build time via sysusers.d). Use a
+# kickstart %post script to apply credentials at install time instead.
+#
+# Generate a password hash with:
+#   python3 -c "import crypt; print(crypt.crypt('yourpassword'))"
+
+[customizations.installer.kickstart]
+contents = """
+%post
+echo 'noctua:$6$rounds=...' | chpasswd -e
+mkdir -p /var/home/noctua/.ssh
+echo 'ssh-ed25519 AAAA...' >> /var/home/noctua/.ssh/authorized_keys
+chmod 700 /var/home/noctua/.ssh
+chmod 600 /var/home/noctua/.ssh/authorized_keys
+chown -R noctua:noctua /var/home/noctua/.ssh
+restorecon -R /var/home/noctua/.ssh
+%end
+"""

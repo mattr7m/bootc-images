@@ -50,22 +50,17 @@ podman build --build-arg BASE_IMAGE=localhost/bootc-base:latest \
     -t bootc-nidus:latest images/nidus/
 ```
 
-## Deployment with bootc-image-builder
+## User: noctua
 
-The `config.toml` file (at repository level, NOT inside `config/`) is an input for
-`bootc-image-builder`. Edit it with your username, password/SSH key, and groups:
+The `noctua` user (UID 1000) is created at build time via `sysusers.d`, with `wheel`, `video`, and `render` group memberships. Login credentials (password, SSH key) are applied at install time through `config.toml`:
 
 ```bash
-# Build a disk image for installation
-sudo podman run --rm -it --privileged \
-    --pull=newer \
-    -v ./config.toml:/config.toml:ro \
-    -v ./output:/output \
-    quay.io/centos-bootc/bootc-image-builder:latest \
-    --type raw-disk \
-    --config /config.toml \
-    localhost/bootc-nidus:latest
+cp images/nidus/config.toml.example images/nidus/config.toml
+# Edit to set your password hash and SSH public key
+make iso-nidus
 ```
+
+Credentials use a kickstart `%post` script because Anaconda silently skips `[[customizations.user]]` for users that already exist in the image. See `config.toml.example` for the format.
 
 ## BIOS Notes
 
