@@ -34,17 +34,19 @@ Default `REGISTRY` is `localhost`. Override with `REGISTRY=`, `BASE_TAG=`, `NIDU
 
 ## Architecture Conventions
 
-- **Each image directory** (`images/<name>/`) contains: `Containerfile`, `README.md`, `config.toml` (bootc-image-builder user config), and a `config/` directory for filesystem overlays.
+- **Each image directory** (`images/<name>/`) contains: `Containerfile`, `README.md`, `config.toml.example`, and a `config/` directory for filesystem overlays.
 - **Filesystem overlays** in `config/` mirror the root filesystem and are copied into the image with `COPY config/ /`. For example, `images/nidus/config/usr/lib/udev/rules.d/99-amd-kfd.rules` lands at `/usr/lib/udev/rules.d/99-amd-kfd.rules`.
 - **All Containerfiles** must end with `RUN bootc container lint` for validation.
 - **Podman is not in base** — it's installed in derivative images (nidus, dev) that need it.
 - **Nidus runs AI workloads in toolbox containers**, not baked into the host image. GPU access is via udev rules granting the `render` group device permissions.
+- **Install-time config** (`config.toml`) is gitignored — it contains password hashes and SSH keys. Each image has a tracked `config.toml.example` that serves as the template. The `config.toml` is manually created on the build system by copying the example. **When changing the config.toml format, update `config.toml.example` in each image directory, the root `README.md`, and the per-image `README.md` files.**
+- **Anaconda + pre-existing users**: Anaconda silently skips `[[customizations.user]]` for users that already exist in the image. Credentials (password, SSH key) and hostname are instead applied via a kickstart `%post` script in `[customizations.installer.kickstart]`. See any `config.toml.example` for the format.
 - **Scripts** (`scripts/build.sh`, `scripts/push.sh`, `scripts/build-iso.sh`) are helpers invoked by the Makefile or directly. All use `set -euo pipefail`.
 
 ## Adding a New Derivative Image
 
 1. Create `images/<name>/Containerfile` with `ARG BASE_IMAGE` and `FROM ${BASE_IMAGE}`
-2. Add `config/` directory for filesystem overlays, `config.toml` for user customization
+2. Add `config/` directory for filesystem overlays, `config.toml.example` for install-time customization template
 3. Add `build-<name>`, `push-<name>`, and `iso-<name>` targets to the Makefile (follow existing patterns)
 4. Add the image to the `lint` target's hadolint commands
 5. Document in `images/<name>/README.md`
