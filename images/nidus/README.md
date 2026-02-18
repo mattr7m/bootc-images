@@ -52,15 +52,15 @@ podman build --build-arg BASE_IMAGE=localhost/bootc-base:latest \
 
 ## User: noctua
 
-The `noctua` user (UID 1000) is created at build time via `sysusers.d`, with `wheel`, `video`, and `render` group memberships. Login credentials (password, SSH key) are applied at install time through `config.toml`:
+The default `user` account (UID 1000) is inherited from the base image. At install time, the `%post` script in `config.toml` renames it to `noctua`, adds `video` and `render` group memberships for GPU access, and sets credentials:
 
 ```bash
 cp images/nidus/config.toml.example images/nidus/config.toml
-# Edit to set your password hash and SSH public key
+# Edit to set password hash and SSH public key
 make iso-nidus
 ```
 
-Credentials use a kickstart `%post` script because Anaconda silently skips `[[customizations.user]]` for users that already exist in the image. See `config.toml.example` for the format.
+See `config.toml.example` for the full format.
 
 ## BIOS Notes
 

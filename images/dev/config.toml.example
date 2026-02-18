@@ -1,8 +1,7 @@
 # Dev ISO installer customizations
 #
-# Anaconda silently skips password/key setup for users that already exist
-# in the image (user is created at build time via sysusers.d). Use a
-# kickstart %post script to apply credentials at install time instead.
+# The dev image inherits a default "user" account (UID 1000) from base.
+# The %post script below renames it, sets credentials, and configures SSH.
 #
 # Generate a password hash with:
 #   python3 -c "import crypt; print(crypt.crypt('yourpassword'))"
@@ -16,15 +15,20 @@ contents = """
 # Hostname
 echo 'myhost' > /etc/hostname
 
+# Rename default user → your username
+usermod -l youruser user
+groupmod -n youruser user
+usermod -d /home/youruser -m youruser
+
 # User password
-echo 'user:$6$rounds=...' | chpasswd -e
+echo 'youruser:$6$rounds=...' | chpasswd -e
 
 # SSH authorized key
-mkdir -p /var/home/user/.ssh
-echo 'ssh-ed25519 AAAA...' >> /var/home/user/.ssh/authorized_keys
-chmod 700 /var/home/user/.ssh
-chmod 600 /var/home/user/.ssh/authorized_keys
-chown -R user:user /var/home/user/.ssh
-restorecon -R /var/home/user/.ssh
+mkdir -p /var/home/youruser/.ssh
+echo 'ssh-ed25519 AAAA...' >> /var/home/youruser/.ssh/authorized_keys
+chmod 700 /var/home/youruser/.ssh
+chmod 600 /var/home/youruser/.ssh/authorized_keys
+chown -R youruser:youruser /var/home/youruser/.ssh
+restorecon -R /var/home/youruser/.ssh
 %end
 """

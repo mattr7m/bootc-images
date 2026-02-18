@@ -30,30 +30,16 @@ RUN dnf install -y \
 # Filesystem-mirror layout under config/ maps directly to /:
 #   config/usr/lib/bootc/kargs.d/01-strix-halo.toml   → kernel boot parameters
 #   config/usr/lib/udev/rules.d/99-amd-kfd.rules      → GPU device access
-#   config/usr/lib/sysusers.d/default-user.conf         → noctua user/group defs (overrides base)
 #   config/usr/lib/systemd/system/strix-halo-firstboot.service
 #   config/usr/local/bin/strix-halo-firstboot.sh       → first-boot tuned setup
 #   config/usr/local/bin/strix-halo-setup-toolboxes.sh → toolbox provisioning
 #
 COPY config/ /
 
-# ── 3. Rename default user → noctua ────────────────────────────────────────
-#
-# Base image provides a "user" account (UID 1000). Rename it to "noctua",
-# move the home directory, and add video/render group memberships for GPU
-# access. (Groups live in /usr/lib/group so usermod -aG is needed directly.)
-#
-RUN usermod -l noctua user && \
-    groupmod -n noctua user && \
-    usermod -d /home/noctua -m noctua && \
-    grep -q '^video:' /etc/group || getent group video >> /etc/group && \
-    grep -q '^render:' /etc/group || getent group render >> /etc/group && \
-    usermod -aG video,render noctua
-
-# ── 4. Enable services ───────────────────────────────────────────────────────
+# ── 3. Enable services ───────────────────────────────────────────────────────
 RUN systemctl enable tuned strix-halo-firstboot.service
 
-# ── 5. Kernel boot parameter notes ───────────────────────────────────────────
+# ── 4. Kernel boot parameter notes ───────────────────────────────────────────
 #
 # Parameters are declared in /usr/lib/bootc/kargs.d/01-strix-halo.toml and
 # applied by bootc at install time and on subsequent upgrades.

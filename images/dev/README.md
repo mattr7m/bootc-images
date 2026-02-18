@@ -36,15 +36,15 @@ podman build --build-arg BASE_IMAGE=localhost/bootc-base:latest \
 
 ## User: user
 
-The `user` account (UID 1000) is inherited from the base image. Login credentials (password, SSH key) are applied at install time through `config.toml`:
+The default `user` account (UID 1000) is inherited from the base image. At install time, the `%post` script in `config.toml` renames the account to your chosen username and sets credentials:
 
 ```bash
 cp images/dev/config.toml.example images/dev/config.toml
-# Edit to set your password hash and SSH public key
+# Edit to set hostname, username, password hash, and SSH public key
 make iso-dev
 ```
 
-Credentials use a kickstart `%post` script because Anaconda silently skips `[[customizations.user]]` for users that already exist in the image. See `config.toml.example` for the format.
+See `config.toml.example` for the full format.
 
 ## Verification
 

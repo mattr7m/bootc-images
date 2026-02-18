@@ -15,11 +15,11 @@ General-purpose Fedora bootc base image. All derivative images build on top of t
 
 ## User: user
 
-A default `user` account (UID 1000, `wheel` group, `/bin/bash`) is created at build time via `sysusers.d`. Derivative images can rename this account (e.g. nidus renames it to `noctua`). Login credentials are applied at install time through `config.toml`:
+A default `user` account (UID 1000, `wheel` group, `/bin/bash`) is created at build time via `sysusers.d`. At install time, the `%post` script in `config.toml` renames the account to your chosen username and sets credentials:
 
 ```bash
 cp images/base/config.toml.example images/base/config.toml
-# Edit to set your password hash and SSH public key
+# Edit to set hostname, username, password hash, and SSH public key
 ```
 
 ## Build

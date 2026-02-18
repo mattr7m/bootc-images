@@ -1,8 +1,8 @@
 # Nidus ISO installer customizations
 #
-# Anaconda silently skips password/key setup for users that already exist
-# in the image (noctua is created at build time via sysusers.d). Use a
-# kickstart %post script to apply credentials at install time instead.
+# The nidus image inherits a default "user" account (UID 1000) from base.
+# The %post script below renames it to "noctua", adds GPU group memberships,
+# sets credentials, and configures SSH.
 #
 # Generate a password hash with:
 #   python3 -c "import crypt; print(crypt.crypt('yourpassword'))"
@@ -15,6 +15,16 @@ contents = """
 %post --log=/var/log/anaconda/ks-post.log
 # Hostname
 echo 'nidus' > /etc/hostname
+
+# Rename default user → noctua
+usermod -l noctua user
+groupmod -n noctua user
+usermod -d /home/noctua -m noctua
+
+# GPU access: promote system groups and add memberships
+grep -q '^video:' /etc/group || getent group video >> /etc/group
+grep -q '^render:' /etc/group || getent group render >> /etc/group
+usermod -aG video,render noctua
 
 # User password
 echo 'noctua:$6$rounds=...' | chpasswd -e
