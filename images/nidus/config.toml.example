@@ -6,11 +6,20 @@
 #
 # Generate a password hash with:
 #   python3 -c "import crypt; print(crypt.crypt('yourpassword'))"
+#
+# Copy this file to config.toml and fill in real values before building:
+#   cp config.toml.example config.toml
 
 [customizations.installer.kickstart]
 contents = """
-%post
+%post --log=/var/log/anaconda/ks-post.log
+# Hostname
+echo 'nidus' > /etc/hostname
+
+# User password
 echo 'noctua:$6$rounds=...' | chpasswd -e
+
+# SSH authorized key
 mkdir -p /var/home/noctua/.ssh
 echo 'ssh-ed25519 AAAA...' >> /var/home/noctua/.ssh/authorized_keys
 chmod 700 /var/home/noctua/.ssh

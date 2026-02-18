@@ -11,15 +11,15 @@ quay.io/fedora/fedora-bootc:43
         └── dev     — podman, python3, php, gcc, claude-code
 ```
 
-## User Configuration (optional)
+## Install-time Configuration (optional)
 
-Each image creates a default user at build time via `sysusers.d` (base/dev: `user`, nidus: `noctua`). Login credentials (password, SSH key) are applied at install time through `config.toml`, which is **gitignored** because it contains hashed passwords.
+Each image creates a default user at build time via `sysusers.d` (base/dev: `user`, nidus: `noctua`). Hostname, login credentials, and SSH keys are applied at install time through `config.toml`, which is **gitignored** because it contains secrets.
 
 To create one, copy the example and edit it:
 
 ```bash
 cp images/nidus/config.toml.example images/nidus/config.toml
-# Edit to set your password hash and SSH public key
+# Edit to set hostname, password hash, and SSH public key
 ```
 
 Generate a hashed password with:
@@ -28,13 +28,19 @@ Generate a hashed password with:
 python3 -c "import crypt; print(crypt.crypt('yourpassword'))"
 ```
 
-A `config.toml` is only used during ISO builds (`make iso-*`). Without one, the ISO will have no login credentials configured. Credentials are injected via a kickstart `%post` script because Anaconda silently skips `[[customizations.user]]` for users that already exist in the image:
+A `config.toml` is only used during ISO builds (`make iso-*`). Without one, the ISO will have no login credentials or hostname configured. Configuration is injected via a kickstart `%post` script because Anaconda silently skips `[[customizations.user]]` for users that already exist in the image:
 
 ```toml
 [customizations.installer.kickstart]
 contents = """
-%post
+%post --log=/var/log/anaconda/ks-post.log
+# Hostname
+echo 'nidus' > /etc/hostname
+
+# User password
 echo 'noctua:$6$rounds=...' | chpasswd -e
+
+# SSH authorized key
 mkdir -p /var/home/noctua/.ssh
 echo 'ssh-ed25519 AAAA...' >> /var/home/noctua/.ssh/authorized_keys
 chmod 700 /var/home/noctua/.ssh
@@ -44,6 +50,8 @@ restorecon -R /var/home/noctua/.ssh
 %end
 """
 ```
+
+If the `%post` script fails, check `/var/log/anaconda/ks-post.log` on the installed system.
 
 ## Quick Start
 
