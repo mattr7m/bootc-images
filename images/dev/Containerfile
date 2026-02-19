@@ -9,11 +9,12 @@ RUN dnf install -y \
     && dnf clean all
 
 # Claude Code — native binary via official installer
-# Installs to /root/.local, then symlink to /usr/local/bin for all users.
-# /root → /var/roothome symlink exists but target is missing in bootc images.
+# Installs to /root/.local, then copy binary to /usr/local/bin so it lives
+# in the immutable /usr layer (bootc doesn't deploy /var content on upgrade).
 RUN mkdir -p /var/roothome && \
     curl -fsSL https://claude.ai/install.sh | bash && \
-    ln -sf /var/roothome/.local/bin/claude /usr/local/bin/claude
+    cp "$(readlink -f /var/roothome/.local/bin/claude)" /usr/local/bin/claude && \
+    rm -rf /var/roothome/.local/share/claude /var/roothome/.local/bin/claude
 
 COPY config/ /
 
