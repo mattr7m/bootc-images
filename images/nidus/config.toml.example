@@ -20,6 +20,7 @@ echo 'nidus' > /etc/hostname
 usermod -l noctua user
 groupmod -n noctua user
 usermod -d /home/noctua -m noctua
+chown noctua:noctua /var/home/noctua
 
 # GPU access: promote system groups and add memberships
 grep -q '^video:' /etc/group || getent group video >> /etc/group
