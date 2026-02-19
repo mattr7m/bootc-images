@@ -9,8 +9,11 @@ RUN dnf install -y \
     && dnf clean all
 
 # Claude Code — native binary via official installer
-# /root → /var/roothome symlink exists but target is missing in bootc images
-RUN mkdir -p /var/roothome && curl -fsSL https://claude.ai/install.sh | bash
+# Installs to /root/.local, then symlink to /usr/local/bin for all users.
+# /root → /var/roothome symlink exists but target is missing in bootc images.
+RUN mkdir -p /var/roothome && \
+    curl -fsSL https://claude.ai/install.sh | bash && \
+    ln -sf /var/roothome/.local/bin/claude /usr/local/bin/claude
 
 COPY config/ /
 
