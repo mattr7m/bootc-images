@@ -12,6 +12,7 @@ RUN dnf install -y \
     gh \
     tmux \
     curl \
+    rsync \
     wget \
     htop \
     emacs \
