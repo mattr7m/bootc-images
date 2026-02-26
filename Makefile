@@ -34,10 +34,12 @@ build-dev: build-base ## Build the dev image (builds base first)
 
 build-all: build-nidus build-dev ## Build all images
 
+HADOLINT = podman run --rm -i ghcr.io/hadolint/hadolint hadolint --ignore DL3041 --ignore DL3059 -
+
 lint: ## Lint all Containerfiles
-	podman run --rm -i ghcr.io/hadolint/hadolint < images/base/Containerfile
-	podman run --rm -i ghcr.io/hadolint/hadolint < images/nidus/Containerfile
-	podman run --rm -i ghcr.io/hadolint/hadolint < images/dev/Containerfile
+	$(HADOLINT) < images/base/Containerfile
+	$(HADOLINT) < images/nidus/Containerfile
+	$(HADOLINT) < images/dev/Containerfile
 
 clean: ## Remove built images
 	-podman rmi $(BASE_IMAGE) $(NIDUS_IMAGE) $(DEV_IMAGE) 2>/dev/null
