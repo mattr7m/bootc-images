@@ -17,6 +17,15 @@ quay.io/fedora/fedora-bootc:43
 - AMD Strix Halo (Ryzen AI 300 / Ryzen AI Max) with integrated RDNA 3.5 GPU
 - 128 GB unified memory systems (kernel parameters tuned accordingly)
 
+## AI Toolboxes
+
+Nidus is designed as the host OS for [kyuz0/amd-strix-halo-toolboxes](https://github.com/kyuz0/amd-strix-halo-toolboxes) — pre-built toolbox containers for running large language models on Strix Halo integrated GPUs using llama.cpp. The project provides containers with multiple GPU backends:
+
+- **Vulkan** (AMDVLK and Mesa RADV) for broad compatibility
+- **ROCm** (6.4.4, 7.2, and nightly) for performance-focused inference
+
+The `strix-halo-setup-toolboxes.sh` script (included in this image) creates these toolboxes on first login. The host image provides the kernel parameters, udev rules, and group memberships needed for GPU passthrough into the containers.
+
 ## Added Packages
 
 | Package | Purpose |
