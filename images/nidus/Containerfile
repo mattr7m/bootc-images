@@ -1,166 +1,57 @@
 # =============================================================================
-# Strix Halo AI Workstation — Fedora 43 Image Mode
+# Nidus — Strix Halo AI Workstation (derivative of base)
 # =============================================================================
 # Matches the kyuz0 amd-strix-halo-toolboxes host configuration baseline.
 # The AI toolboxes themselves run inside Toolbx/Podman containers on top of
 # this host image — we do NOT bake ROCm into the host.
 # =============================================================================
 
-FROM quay.io/fedora/fedora-bootc:43
+ARG BASE_IMAGE=localhost/bootc-base:latest
+FROM ${BASE_IMAGE}
 
-# ── 1. Kernel boot parameters for Strix Halo unified memory ─────────────────
+# ── 1. Strix Halo-specific packages ──────────────────────────────────────────
 #
-# bootc manages kernel arguments via /usr/lib/bootc/kargs.d/*.toml files.
-# These are applied at install time AND on subsequent bootc upgrades.
-# This replaces the traditional "edit /etc/default/grub" workflow.
-#
-RUN mkdir -p /usr/lib/bootc/kargs.d
-
-# Strix Halo unified memory parameters (matching kyuz0 baseline)
-RUN cat <<'EOF' > /usr/lib/bootc/kargs.d/01-strix-halo.toml
-kargs = ["amd_iommu=off", "amdgpu.gttsize=131072", "ttm.pages_limit=33554432"]
-match-architectures = ["x86_64"]
-EOF
-
-# NOTE on parameter values (for a 128GB system):
-#   amd_iommu=off           — Disables IOMMU for lower GPU memory access latency
-#   amdgpu.gttsize=131072   — 128 GiB GTT (Graphics Translation Table) in MiB
-#   ttm.pages_limit=33554432 — 128 GiB pinned memory limit (pages × 4KiB)
-#
-# The strix-halo-toolboxes.com site uses slightly different values
-# (iommu=pt, gttsize=126976, pages_limit=32505856 → ~124GB). The GitHub
-# repo uses the 128GB values above. Either works; the 128GB values are the
-# current recommendation from the repo maintainer.
-#
-# FUTURE NOTE: amdgpu.gttsize is being deprecated upstream in favor of
-# ttm.pages_limit / ttm.page_pool_size. On kernels ≥6.16.9, the kernel
-# has native UMA fixes and these may not be strictly required, but they
-# are still recommended for explicit control. Monitor dmesg for deprecation
-# warnings and update this file as the upstream guidance evolves.
-
-# ── 2. System packages ──────────────────────────────────────────────────────
-#
-# Install the minimum host-level packages needed to run the AI toolboxes.
-# ROCm and AI frameworks live INSIDE the toolbox containers, not on the host.
+# Only packages not already in base. ROCm and AI frameworks live INSIDE
+# the toolbox containers, not on the host.
 #
 RUN dnf install -y \
-    # Container tooling (Toolbx is the kyuz0 standard; Distrobox as alternative)
+    podman \
     toolbox \
     distrobox \
-    podman \
-    # Performance tuning
     tuned \
-    # Useful host utilities
-    vim-enhanced \
-    htop \
-    git \
-    wget \
-    curl \
-    jq \
     pciutils \
     usbutils \
     lm_sensors \
-    # Firmware — critical for Strix Halo GPU
     linux-firmware \
     && dnf clean all
 
-# ── 3. udev rules for GPU device access ─────────────────────────────────────
+# ── 2. Copy configuration overlay ────────────────────────────────────────────
 #
-# Ensure /dev/kfd and /dev/dri are accessible to users in the render/video
-# groups. This is required for ROCm compute inside toolbox containers.
+# Filesystem-mirror layout under config/ maps directly to /:
+#   config/usr/lib/bootc/kargs.d/01-strix-halo.toml   → kernel boot parameters
+#   config/usr/lib/udev/rules.d/99-amd-kfd.rules      → GPU device access
+#   config/usr/lib/systemd/system/strix-halo-firstboot.service
+#   config/usr/local/bin/strix-halo-firstboot.sh       → first-boot tuned setup
+#   config/usr/local/bin/strix-halo-setup-toolboxes.sh → toolbox provisioning
 #
-RUN cat <<'EOF' > /usr/lib/udev/rules.d/99-amd-kfd.rules
-SUBSYSTEM=="kfd", GROUP="render", MODE="0666"
-SUBSYSTEM=="drm", KERNEL=="card[0-9]*", GROUP="render", MODE="0666"
-SUBSYSTEM=="drm", KERNEL=="renderD[0-9]*", GROUP="render", MODE="0666"
-EOF
+COPY config/ /
 
-# ── 4. Enable performance tuning service ─────────────────────────────────────
+# ── 3. Enable services ───────────────────────────────────────────────────────
+RUN systemctl enable tuned strix-halo-firstboot.service
+
+# ── 4. Kernel boot parameter notes ───────────────────────────────────────────
 #
-# The kyuz0 baseline uses `tuned` with the `accelerator-performance` profile.
-# We enable the service here; the profile is set on first boot (see below).
+# Parameters are declared in /usr/lib/bootc/kargs.d/01-strix-halo.toml and
+# applied by bootc at install time and on subsequent upgrades.
 #
-RUN systemctl enable tuned
-
-# Create a script to set the tuned profile on first boot.
-# (tuned-adm requires the service to be running, which it isn't during build)
-RUN cat <<'SCRIPT' > /usr/local/bin/strix-halo-firstboot.sh
-#!/bin/bash
-# Set tuned profile for AI/GPU workloads (runs once on first boot)
-MARKER="/var/lib/strix-halo-configured"
-if [ ! -f "$MARKER" ]; then
-    # Wait for tuned to be ready
-    sleep 5
-    tuned-adm profile accelerator-performance
-    echo "$(date): accelerator-performance profile set" > "$MARKER"
-fi
-SCRIPT
-RUN chmod +x /usr/local/bin/strix-halo-firstboot.sh
-
-RUN cat <<'EOF' > /usr/lib/systemd/system/strix-halo-firstboot.service
-[Unit]
-Description=Strix Halo First Boot Configuration
-After=tuned.service
-Requires=tuned.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/strix-halo-firstboot.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-EOF
-RUN systemctl enable strix-halo-firstboot.service
-
-# ── 5. Podman/Toolbx configuration ──────────────────────────────────────────
+# For a 128 GB Strix Halo system:
+#   amd_iommu=off             — disable IOMMU for lower GPU memory access latency
+#   amdgpu.gttsize=131072     — 128 GiB GTT (Graphics Translation Table) in MiB
+#   ttm.pages_limit=33554432  — 128 GiB pinned memory limit (pages x 4 KiB)
 #
-# Pre-configure container storage and defaults for running the AI toolboxes.
-# The actual toolbox images are pulled at runtime, not baked into this image.
-#
+# FUTURE: amdgpu.gttsize is being deprecated upstream in favor of
+# ttm.pages_limit / ttm.page_pool_size. On kernels >= 6.16.9 the kernel has
+# native UMA fixes and these may not be strictly required, but they are still
+# recommended for explicit control.
 
-# ── 6. Convenience: toolbox refresh script ───────────────────────────────────
-#
-# Include a helper script to pull/recreate the kyuz0 AI toolboxes.
-#
-RUN cat <<'SCRIPT' > /usr/local/bin/strix-halo-setup-toolboxes.sh
-#!/bin/bash
-set -euo pipefail
-
-echo "=== Strix Halo AI Toolbox Setup ==="
-echo ""
-echo "This script creates the kyuz0 AI toolboxes with proper GPU access."
-echo "Run this as your regular user (not root)."
-echo ""
-
-# Vulkan RADV (most stable, recommended for most users)
-echo "[1/3] Creating Vulkan RADV toolbox..."
-toolbox create llama-vulkan-radv \
-  --image docker.io/kyuz0/amd-strix-halo-toolboxes:vulkan-radv \
-  -- --device /dev/dri --group-add video --security-opt seccomp=unconfined 2>/dev/null || true
-
-# ROCm 6.4.4 + ROCWMMA (best ROCm option)
-echo "[2/3] Creating ROCm 6.4.4 + ROCWMMA toolbox..."
-toolbox create llama-rocm-6.4.4-rocwmma \
-  --image docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-6.4.4-rocwmma \
-  -- --device /dev/dri --device /dev/kfd \
-  --group-add video --group-add render --group-add sudo \
-  --security-opt seccomp=unconfined 2>/dev/null || true
-
-# vLLM (for serving)
-echo "[3/3] Creating vLLM toolbox..."
-toolbox create vllm \
-  --image docker.io/kyuz0/vllm-therock-gfx1151-aotriton:latest \
-  -- --device /dev/dri --device /dev/kfd \
-  --group-add video --group-add render \
-  --security-opt seccomp=unconfined 2>/dev/null || true
-
-echo ""
-echo "=== Done! ==="
-echo "Enter a toolbox with: toolbox enter <name>"
-echo "  e.g.: toolbox enter llama-vulkan-radv"
-SCRIPT
-RUN chmod +x /usr/local/bin/strix-halo-setup-toolboxes.sh
-
-# ── 7. Lint the image ────────────────────────────────────────────────────────
 RUN bootc container lint

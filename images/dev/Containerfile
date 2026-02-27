@@ -1,0 +1,22 @@
+ARG BASE_IMAGE=localhost/bootc-base:latest
+FROM ${BASE_IMAGE}
+
+RUN dnf install -y \
+    podman \
+    python3 \
+    php \
+    gcc \
+    && dnf clean all
+
+# Claude Code — native binary via official installer
+# Installs to /root/.local, then copy binary to /usr/local/bin so it lives
+# in the immutable /usr layer (bootc doesn't deploy /var content on upgrade).
+# hadolint ignore=DL4006
+RUN mkdir -p /var/roothome && \
+    curl -fsSL https://claude.ai/install.sh | bash && \
+    cp "$(readlink -f /var/roothome/.local/bin/claude)" /usr/local/bin/claude && \
+    rm -rf /var/roothome/.local/share/claude /var/roothome/.local/bin/claude
+
+COPY config/ /
+
+RUN bootc container lint

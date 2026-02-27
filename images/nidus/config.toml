@@ -1,7 +1,0 @@
-[[customizations.user]]
-name = "your-username"
-# Use a hashed password (generate with: python3 -c "import crypt; print(crypt.crypt('yourpassword'))")
-password = "$6$rounds=..."
-groups = ["wheel", "video", "render"]
-# Or use SSH key instead:
-# key = "ssh-ed25519 AAAA..."

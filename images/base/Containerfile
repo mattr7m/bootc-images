@@ -1,0 +1,22 @@
+FROM quay.io/fedora/fedora-bootc:43
+
+# Copy system configuration
+COPY config/ /
+
+# Create default user (UID 1000) from sysusers.d/tmpfiles.d overlay
+RUN systemd-sysusers && systemd-tmpfiles --create /usr/lib/tmpfiles.d/default-user.conf
+
+# Install core packages
+RUN dnf install -y \
+    git \
+    gh \
+    tmux \
+    curl \
+    rsync \
+    wget \
+    htop \
+    emacs \
+    jq \
+    && dnf clean all
+
+RUN bootc container lint
