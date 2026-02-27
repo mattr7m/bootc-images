@@ -1,5 +1,7 @@
 # Nidus — Strix Halo AI Workstation
 
+![Nidus](nidus-banner.jpg)
+
 Fedora bootc image for AMD Strix Halo systems, designed as the host OS for running
 kyuz0 AI toolboxes. Derives from the base image.
 
