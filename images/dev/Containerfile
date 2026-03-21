@@ -6,6 +6,7 @@ RUN dnf install -y \
     python3 \
     php \
     gcc \
+    kubernetes-client \
     && dnf clean all
 
 # Claude Code — native binary via official installer
