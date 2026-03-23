@@ -22,6 +22,10 @@ groupmod -n noctua user
 usermod -d /home/noctua -m noctua
 chown noctua:noctua /var/home/noctua
 
+# Fix subordinate UID/GID mapping after rename (usermod -l doesn't update these)
+sed -i 's/^user:/noctua:/' /etc/subuid
+sed -i 's/^user:/noctua:/' /etc/subgid
+
 # GPU access: promote system groups and add memberships
 grep -q '^video:' /etc/group || getent group video >> /etc/group
 grep -q '^render:' /etc/group || getent group render >> /etc/group

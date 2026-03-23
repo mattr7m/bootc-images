@@ -21,6 +21,10 @@ groupmod -n youruser user
 usermod -d /home/youruser -m youruser
 chown youruser:youruser /var/home/youruser
 
+# Fix subordinate UID/GID mapping after rename (usermod -l doesn't update these)
+sed -i 's/^user:/youruser:/' /etc/subuid
+sed -i 's/^user:/youruser:/' /etc/subgid
+
 # User password
 echo 'youruser:$6$rounds=...' | chpasswd -e
 

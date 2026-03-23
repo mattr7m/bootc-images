@@ -4,7 +4,10 @@ FROM quay.io/fedora/fedora-bootc:43
 COPY config/ /
 
 # Create default user (UID 1000) from sysusers.d/tmpfiles.d overlay
-RUN systemd-sysusers && systemd-tmpfiles --create /usr/lib/tmpfiles.d/default-user.conf
+# systemd-sysusers does not allocate subordinate UIDs/GIDs (unlike useradd),
+# so we must explicitly grant a range for rootless podman user namespaces.
+RUN systemd-sysusers && systemd-tmpfiles --create /usr/lib/tmpfiles.d/default-user.conf && \
+    usermod --add-subuids 100000-165535 --add-subgids 100000-165535 user
 
 # Install core packages
 RUN dnf install -y \
