@@ -77,6 +77,11 @@ make stage-iso
 make iso-all
 ```
 
+>[!NOTE]
+>The hostname is commited to the image at Anaconda buld time (i.e. when you boot the iso from `make iso-all`).
+>Often it is desirable to re-use a given image to build multiple host instances. To change the hostname
+>after booting an image, use: `hostnamectl set-hostname new-hostname`
+
 ## Repository Structure
 
 ```
